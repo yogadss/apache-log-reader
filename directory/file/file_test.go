@@ -1,43 +1,44 @@
 package file
 
 import (
-	"github.com/stretchr/testify/assert"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type Case struct {
 	name        string
-	path     string
-	fileBuffer io.Reader
+	path        string
+	fileBuffer  io.Reader
 	shouldError bool
-	filePrefix string
+	filePrefix  string
 }
 
 var lineParserCase = []Case{
 	{
 		name:        "ONE LINER",
-		path:     "",
-		fileBuffer : strings.NewReader("This is a test string"),
+		path:        "",
+		fileBuffer:  strings.NewReader("This is a test string"),
 		shouldError: false,
 	},
 	{
 		name:        "MULTI LINE",
-		path:     "daodoq.kda!@kd",
-		fileBuffer : strings.NewReader("This is a test string \n This is a second test string"),
+		path:        "daodoq.kda!@kd",
+		fileBuffer:  strings.NewReader("This is a test string \n This is a second test string"),
 		shouldError: false,
 	},
 	{
 		name:        "NO FILE",
-		path:     "/usr/local/var/log/httpd",
+		path:        "/usr/local/var/log/httpd",
 		shouldError: true,
 	},
 
 	{
 		name:        "EMPTY FILE",
-		path:     "/usr/local/var/log/httpd",
-		fileBuffer: strings.NewReader(""),
+		path:        "/usr/local/var/log/httpd",
+		fileBuffer:  strings.NewReader(""),
 		shouldError: false,
 	},
 }
@@ -45,26 +46,26 @@ var lineParserCase = []Case{
 var checkIfTargetFileCase = []Case{
 	{
 		name:        "PATH LENGTH ZERO",
-		path:     "",
-		filePrefix: "access_log",
+		path:        "",
+		filePrefix:  "access_log",
 		shouldError: true,
 	},
 	{
 		name:        "PREFIX LENGTH ZERO",
-		path:     "/usr/local/var/log/httpd",
-		filePrefix: "",
+		path:        "/usr/local/var/log/httpd",
+		filePrefix:  "",
 		shouldError: true,
 	},
 	{
 		name:        "NOT A TARGET FILE",
-		path:     "/usr/local/var/log/httpd/access_log.1613967000",
-		filePrefix: "error_log",
+		path:        "/usr/local/var/log/httpd/access_log.1613967000",
+		filePrefix:  "error_log",
 		shouldError: false,
 	},
 	{
 		name:        "TARGET FILE",
-		path:     "/usr/local/var/log/httpd/access_log.1613967000",
-		filePrefix: "access_log",
+		path:        "/usr/local/var/log/httpd/access_log.1613967000",
+		filePrefix:  "access_log",
 		shouldError: false,
 	},
 }
@@ -75,7 +76,7 @@ func TestLineParser(t *testing.T) {
 
 	for _, pbc := range lineParserCase {
 		t.Logf(`Testing Scenario %s`, pbc.name)
-		line,err := LineParser(pbc.fileBuffer)
+		line, err := LineParser(pbc.fileBuffer)
 		if pbc.shouldError {
 			t.Logf("expecting error. err = %+v", err)
 			result = assert.NotNil(t, err, "expecting error")
@@ -99,7 +100,7 @@ func TestCheckIfTargetFile(t *testing.T) {
 
 	for _, _case := range checkIfTargetFileCase {
 		t.Logf(`Testing Scenario %s`, _case.name)
-		isTarget,err := CheckIfTargetFile(_case.path,_case.filePrefix)
+		isTarget, err := CheckIfTargetFile(_case.path, _case.filePrefix)
 		if _case.shouldError {
 			t.Logf("expecting error. err = %+v", err)
 			result = assert.NotNil(t, err, "expecting error")
@@ -113,6 +114,6 @@ func TestCheckIfTargetFile(t *testing.T) {
 			t.Fail()
 		}
 
-		t.Logf(`is target file %v`,isTarget)
+		t.Logf(`is target file %v`, isTarget)
 	}
 }

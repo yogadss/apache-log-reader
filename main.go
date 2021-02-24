@@ -1,12 +1,13 @@
 package main
 
 import (
-	"accelbyte.test/cli"
-	"accelbyte.test/directory/file"
-	log "github.com/sirupsen/logrus"
+	"fmt"
+	"log-search/cli"
+	"log-search/directory/file"
 	"os"
-	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -14,8 +15,8 @@ const (
 	chunkSize = 2
 )
 
-func init()  {
-	log.SetLevel(log.ErrorLevel)
+func init() {
+	log.SetLevel(log.FatalLevel)
 }
 
 func main() {
@@ -24,15 +25,19 @@ func main() {
 
 	cmd := cli.NewCommandHandler()
 
-	err := cmd.HandleInput(os.Args)
+	err := cmd.FlagHandle()
 	if err != nil {
-		log.Errorf(`error init directory action %v`, err)
+		log.Fatalf(`error input %v`, err)
 	}
 
+	if cmd.Args["fourth"].(bool) {
+		log.SetLevel(log.InfoLevel)
+	}
+
+	//print elapsed time//
 	defer func() {
 		elapsed := time.Since(start)
-
-		log.Infof("search took %s", elapsed)
+		fmt.Printf("search took %s \n", elapsed)
 	}()
 
 	fileAction, err := file.NewFileAction()
@@ -48,49 +53,31 @@ func main() {
 
 	log.Println(`======================================`)
 
-	var (
-		wg sync.WaitGroup
-		chunks [][]string
-	)
-
 	items := fileAction.GetFilePaths()
 	//cErr := make(chan error)
 	cBreak := make(chan bool)
 
+	//func to be executed when break signal is fired//
 	go func(cs chan bool) {
 		for {
 			select {
 			case <-cs:
-				log.Infof("end signal fired. exited properly")
+				fmt.Printf("end signal fired. exited properly \n")
 				elapsed := time.Since(start)
-				log.Infof("search took %s", elapsed)
+				fmt.Printf("search took %s \n", elapsed)
 				os.Exit(1)
-				return
 			}
 		}
 	}(cBreak)
 
-	for chunkSize < len(items) {
-		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
-	}
+	sequenceProc(fileAction, cmd, cBreak, items)
+}
 
-	for _, chunkChilds := range chunks {
-		//errors := make([]error, len(chunkChilds))
-
-		for _, chunkItem := range chunkChilds {
-
-			wg.Add(1)
-
-			go func(path string) {
-				err := fileAction.ParseByLineSpecificFileChan(path, "access_log", cmd.Args["first"].(float64), cBreak)
-				if err != nil {
-					log.Errorf(`%v`, err)
-				}
-				defer wg.Done()
-			}(chunkItem)
+func sequenceProc(fileAction *file.FileInstance, cmd *cli.Command, cBreak chan bool, items []string) {
+	for _, item := range items {
+		err := fileAction.ParseByLineSpecificFileChan(item, cmd.Args["third"].(string), cmd.Args["first"].(float64), cBreak)
+		if err != nil {
+			log.Warnf(`%v`, err)
 		}
-
-		wg.Wait()
-
 	}
 }

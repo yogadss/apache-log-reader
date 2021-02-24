@@ -2,9 +2,10 @@ package directory
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"sort"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -18,21 +19,22 @@ type (
 	}
 )
 
-func NewDirectoryAction () (DirectoryAction, error) {
+func NewDirectoryAction() (DirectoryAction, error) {
 	return &DirectoryInstance{
 		FilePaths: nil,
-	},nil
+	}, nil
 }
 
+//scan directory for files//
 func (di *DirectoryInstance) Walk(dirPath string) error {
 
 	files, err := ioutil.ReadDir(dirPath)
-	sort.Slice(files, func(i,j int) bool{
+	sort.Slice(files, func(i, j int) bool {
 		return files[i].ModTime().After(files[j].ModTime())
 	})
 
 	for _, _file := range files {
-		di.FilePaths = append(di.FilePaths, fmt.Sprintf(`%s/%s`,dirPath,_file.Name()))
+		di.FilePaths = append(di.FilePaths, fmt.Sprintf(`%s/%s`, dirPath, _file.Name()))
 	}
 
 	if err != nil {
@@ -49,4 +51,3 @@ func (di *DirectoryInstance) Walk(dirPath string) error {
 func (di *DirectoryInstance) GetFilePaths() []string {
 	return di.FilePaths
 }
-

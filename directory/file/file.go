@@ -1,15 +1,17 @@
 package file
 
 import (
-	"accelbyte.test/directory"
-	"accelbyte.test/utils"
 	"bufio"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
+	"log-search/directory"
+	"log-search/utils"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -21,11 +23,11 @@ type (
 
 const regexFilePrefix = `^(%s\.\d+)$|^(%s)$|^(%s-\d+\.log)$`
 
-func NewFileAction () (*FileInstance, error) {
+func NewFileAction() (*FileInstance, error) {
 	return &FileInstance{
-		DirectoryInstance : directory.DirectoryInstance{FilePaths: nil},
-		Lines: nil,
-	},nil
+		DirectoryInstance: directory.DirectoryInstance{FilePaths: nil},
+		Lines:             nil,
+	}, nil
 }
 
 func (fi *FileInstance) ParseByLine(filePath string) error {
@@ -43,7 +45,7 @@ func (fi *FileInstance) ParseByLine(filePath string) error {
 		}
 	}()
 
-	txtlines,err := LineParser(file)
+	txtlines, err := LineParser(file)
 	if err != nil {
 		return fmt.Errorf("failed parse line: %s", err)
 	}
@@ -55,7 +57,7 @@ func (fi *FileInstance) ParseByLine(filePath string) error {
 
 func (fi *FileInstance) ParseByLineSpecificFile(filePath string, filePrefix string, lastMinutes float64) error {
 
-	isTargetFile, err := CheckIfTargetFile(filePath,filePrefix)
+	isTargetFile, err := CheckIfTargetFile(filePath, filePrefix)
 
 	if !isTargetFile {
 		return fmt.Errorf(`%s is not a target file`, filePath)
@@ -74,10 +76,12 @@ func (fi *FileInstance) ParseByLineSpecificFile(filePath string, filePrefix stri
 		}
 	}()
 
-	txtlines,err := LineParser(file)
+	txtlines, err := LineParser(file)
 	if err != nil {
 		return fmt.Errorf("failed parse line: %s", err)
 	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(txtlines)))
 
 	for _, eachline := range txtlines {
 		diffTime, err := utils.LogTimeDiff(eachline)
@@ -96,9 +100,9 @@ func (fi *FileInstance) ParseByLineSpecificFile(filePath string, filePrefix stri
 	return nil
 }
 
-func (fi *FileInstance) ParseByLineSpecificFileChan(filePath string, filePrefix string, lastMinutes float64 ,bS chan bool) error {
+func (fi *FileInstance) ParseByLineSpecificFileChan(filePath string, filePrefix string, lastMinutes float64, bS chan bool) error {
 
-	isTargetFile, err := CheckIfTargetFile(filePath,filePrefix)
+	isTargetFile, err := CheckIfTargetFile(filePath, filePrefix)
 
 	if !isTargetFile {
 		return fmt.Errorf(`%s is not a target file`, filePath)
@@ -116,10 +120,12 @@ func (fi *FileInstance) ParseByLineSpecificFileChan(filePath string, filePrefix 
 		}
 	}()
 
-	txtlines,err := LineParser(file)
+	txtlines, err := LineParser(file)
 	if err != nil {
 		return fmt.Errorf("failed parse line: %s", err)
 	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(txtlines)))
 
 	for _, eachline := range txtlines {
 		diffTime, err := utils.LogTimeDiff(eachline)
@@ -142,14 +148,14 @@ func (fi *FileInstance) ParseByLineSpecificFileChan(filePath string, filePrefix 
 	return nil
 }
 
-func LineParser(file io.Reader) ([]string,error) {
+func LineParser(file io.Reader) ([]string, error) {
 
 	var txtlines []string
-	
+
 	if file == nil {
 		return nil, fmt.Errorf(`invalid or empty file`)
 	}
-	
+
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
@@ -157,14 +163,10 @@ func LineParser(file io.Reader) ([]string,error) {
 		txtlines = append(txtlines, scanner.Text())
 	}
 
-	for _, eachline := range txtlines {
-		log.Printf(eachline)
-	}
-
-	return txtlines,nil
+	return txtlines, nil
 }
 
-func CheckIfTargetFile(filePath string,filePrefix string) (bool,error) {
+func CheckIfTargetFile(filePath string, filePrefix string) (bool, error) {
 	var isTarget bool
 
 	if len(filePath) < 1 {
@@ -177,15 +179,15 @@ func CheckIfTargetFile(filePath string,filePrefix string) (bool,error) {
 
 	fileName := filepath.Base(filePath)
 
-	regexPattern := fmt.Sprintf(regexFilePrefix,filePrefix,filePrefix,filePrefix)
+	regexPattern := fmt.Sprintf(regexFilePrefix, filePrefix, filePrefix, filePrefix)
 
 	re1, err := regexp.Compile(regexPattern) // error if regexp invalid
 	if err != nil {
 		log.Errorf("failed to compile regex 1: %s", err)
-		return isTarget,err
+		return isTarget, err
 	}
 
 	isTargetFile := re1.MatchString(fileName)
 
-	return isTargetFile,nil
+	return isTargetFile, nil
 }
